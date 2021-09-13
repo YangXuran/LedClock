@@ -4,8 +4,6 @@ const uint8_t timeNumber[] = {0xF6, 0xDE, 0x59, 0x2E, 0xE7, 0xCE, 0xE7, 0x9E, 0x
                               0xF3, 0x9E, 0xF3, 0xDE, 0xE4, 0x92, 0xF7, 0xDE, 0xF7, 0x9E,
                               0x08, 0x20, 0x00, 0x02}; /*0123456789:.*/
 
-const rgbPoint_u testPattern[] = {0x101010, 0, 0x101010, 0, 0x101010, 0, 0x101010, 0, 0x101010};
-
 int getTimeFonts(int number, font_t *font)
 {
     if(number > 10 || font == NULL)
@@ -14,13 +12,6 @@ int getTimeFonts(int number, font_t *font)
     font->hight = TIME_NUMBER_HIGHT;
     font->pixel = timeNumber+number*2;
     return 0;
-}
-
-int getPattern(pattern_t *pattern)
-{
-    pattern->width = 3;
-    pattern->hight = 3;
-    pattern->pixel = testPattern;
 }
 
 void adjustPixelBrightness(uint8_t value, rgbPoint_u *pixel, uint32_t length)
