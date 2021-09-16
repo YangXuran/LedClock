@@ -51,6 +51,7 @@ void MX_RTC_Init(void)
   }
 
   /* USER CODE BEGIN Check_RTC_BKUP */
+  /* TODO: STM32F1无法保存日期，需要手动写入备份寄存器中 */
   if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) ==  0x5A5A)
       return;
 
@@ -154,7 +155,7 @@ int calculateWeek(int year, int month, int day)
 
 int setDate(int argc, char *argv[])
 {
-    int i, j, k, strLen;
+    int i, j, strLen;
     RTC_DateTypeDef rtcDate = {0};
     char *date = argv[1];
     uint32_t formatDate[4] = {0};
@@ -163,7 +164,7 @@ int setDate(int argc, char *argv[])
         goto err;
 
     strLen = strlen(date);
-    for(i=j=k=0; i<strLen; i++)
+    for(i=j=0; i<strLen; i++)
         if((date[i]>='0') && (date[i]<='9'))
             formatDate[j] = (formatDate[j]<<4) | (date[i]-'0');
         else
@@ -181,7 +182,7 @@ int setDate(int argc, char *argv[])
     rtcDate.Month = formatDate[1] & 0xFF;
     rtcDate.Date = formatDate[2] & 0xFF;
     rtcDate.WeekDay = formatDate[3] & 0xFF;
-    rt_kprintf("Set Date:%x/%x/%x, WeekDay:%x\n", rtcDate.Year, rtcDate.Month, rtcDate.Date, rtcDate.WeekDay);
+    rt_kprintf("Set Date:20%02x/%02x/%02x, WeekDay:%x\n", rtcDate.Year, rtcDate.Month, rtcDate.Date, rtcDate.WeekDay);
     if (HAL_RTC_SetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD) != HAL_OK)
     {
         rt_kprintf("Set Date Error\n");
@@ -193,6 +194,42 @@ err:
     return -1;
 }
 MSH_CMD_EXPORT(setDate, "Set RTC date, e.g. setDate 2021/09/11");
+
+int setTime(int argc, char *argv[])
+{
+    int i, j, strLen;
+    RTC_TimeTypeDef rtcTime = {0};
+    char *date = argv[1];
+    uint32_t formatDate[2] = {0};
+
+    if(argc < 2)
+        goto err;
+
+    strLen = strlen(date);
+    for(i=j=0; i<strLen; i++)
+        if((date[i]>='0') && (date[i]<='9'))
+            formatDate[j] = (formatDate[j]<<4) | (date[i]-'0');
+        else
+            j++;
+
+    if(formatDate[0] > 0x23 || formatDate[1] > 0x59)
+        goto err;
+
+    rtcTime.Hours = formatDate[0];
+    rtcTime.Minutes = formatDate[1];
+    rtcTime.Seconds = 0x0;
+    rt_kprintf("Set Time: %02x:%02x\n", rtcTime.Hours, rtcTime.Minutes);
+    if (HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD) != HAL_OK)
+    {
+        rt_kprintf("Set Date Error\n");
+        return -1;
+    }
+    return 0;
+err:
+    rt_kprintf("Parameter error, e.g., setTime 21:39\n");
+    return -1;
+}
+MSH_CMD_EXPORT(setTime, "Set RTC time, e.g. setTime 21:39");
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
