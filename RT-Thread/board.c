@@ -158,7 +158,9 @@ void USART1_IRQHandler(void)
     uint32_t errorflags = 0x00U;
     uint8_t dataByte;
     uint32_t length;
+    volatile uint32_t nouse = 0;
 
+    UNUSED(nouse);
     rt_interrupt_enter();
     errorflags = (isrflags & (uint32_t)(USART_SR_PE | USART_SR_FE | USART_SR_ORE | USART_SR_NE));
     if (errorflags == RESET)
@@ -179,6 +181,10 @@ void USART1_IRQHandler(void)
           else
               huart->Instance->DR = (uint8_t)(dataByte & (uint8_t)0x00FF);
       }
+    }else /* If some errors occur */
+    {
+        nouse = huart->Instance->SR;
+        nouse = huart->Instance->DR;
     }
     rt_interrupt_leave();
 }
