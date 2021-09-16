@@ -1,5 +1,5 @@
-#ifndef __AT_UART_H
-#define __AT_UART_H
+#ifndef __AT_HW_H
+#define __AT_HW_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,6 +7,8 @@ extern "C" {
 
 #include "stm32f1xx_hal.h"
 #include <rtthread.h>
+#include "ringbuffer.h"
+#include <string.h>
 
 typedef struct{
     UART_HandleTypeDef handler;
@@ -18,8 +20,14 @@ typedef struct{
     struct rt_semaphore txSem;
 }uartDevice_t;
 
+int atUartInit(void);
+int sendAtData(char *data, int length);
+int receiveAtData(char *buffer, int length, int timeout);
+int esp8266CtrlGpioInit(void);
+void esp8266HardReset(void);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __AT_UART_H */
+#endif /* __AT_HW_H */
