@@ -31,6 +31,7 @@
 #include "rtdbg.h"
 #include "ws2812Matrix.h"
 #include "fonts.h"
+#include "at.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,9 +59,17 @@
 /* USER CODE BEGIN PV */
 
 /* 任务栈与控制块 */
+ ALIGN(RT_ALIGN_SIZE)
+static char clockDisplayTask_stack[1024];
+static struct rt_thread clockDisplayTask_tb;
+
 ALIGN(RT_ALIGN_SIZE)
-static char  clockDisplayThread_stack[512];
-static struct rt_thread clockDisplayThread_tb;
+static char saveDate_stack[256];
+static struct rt_thread saveDate_tb;
+
+ALIGN(RT_ALIGN_SIZE)
+static char wifiCtrl_stack[1024];
+static struct rt_thread wifiCtrl_tb;
 
 /* 信号量 */
 struct rt_semaphore pwmSem; /* LED点阵PWM刷新锁 */
@@ -89,7 +98,7 @@ uint8_t getBrightness(void)
     return 255;
 }
 
-void clockDisplayThread(int arg)
+void clockDisplayTask(int arg)
 {
     int frameCount, clkNum;
     uint32_t rtcTime_u32 = 0x888888, rtcTimeLast_u32 = 0x888888;
@@ -169,7 +178,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
     RTC_TimeTypeDef rtcTime;
     RTC_DateTypeDef rtcDate;
-    goto threadInit; /* Avoid automatic generation of initialization code*/
+ goto threadInit; /* Avoid automatic generation of initialization code*/
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -201,15 +210,39 @@ threadInit:
   rt_kprintf("System Start At: 20%02x/%02x/%02x  ", rtcDate.Year, rtcDate.Month, rtcDate.Date);
   rt_kprintf("%02x:%02x:%02x\n",rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
 
-  rt_thread_init(&clockDisplayThread_tb,
+  /* 时间显示线程 */
+  rt_thread_init(&clockDisplayTask_tb,
                   "clk_dpy",
-                  (void(*))&clockDisplayThread,
+                  (void(*))&clockDisplayTask,
                   NULL,
-                  clockDisplayThread_stack,
-                  sizeof(clockDisplayThread_stack),
+                  clockDisplayTask_stack,
+                  sizeof(clockDisplayTask_stack),
                   10,
                   5);
-  rt_thread_startup(&clockDisplayThread_tb);
+  rt_thread_startup(&clockDisplayTask_tb);
+
+  /* 日期储存线程 */
+  rt_thread_init(&saveDate_tb,
+                  "date_save",
+                  (void(*))&saveDate2BkupRegTask,
+                  NULL,
+                  saveDate_stack,
+                  sizeof(saveDate_stack),
+                  30,
+                  5);
+  rt_thread_startup(&saveDate_tb);
+
+  /* WIFI模块控制线程 */
+  rt_thread_init(&wifiCtrl_tb,
+                  "wifi_ctrl",
+                  (void(*))&usrAtTask,
+                  NULL,
+                  wifiCtrl_stack,
+                  sizeof(wifiCtrl_stack),
+                  20,
+                  5);
+  rt_thread_startup(&wifiCtrl_tb);
+
 
   /* USER CODE END 2 */
 

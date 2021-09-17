@@ -2,7 +2,7 @@
 
 #define AT_DEV_UART USART3
 
-static uartDevice_t atUartDev;
+uartDevice_t atUartDev;
 
 /************************* CHIP UART *******************************/
 int atUartInit(void)
@@ -68,6 +68,12 @@ int receiveAtData(char *buffer, int length, int timeout)
     return receiveCount;
 }
 
+int clearReceiveRngBuff(void)
+{
+    rt_ringbuffer_reset(&atUartDev.rxRingCb);
+    return 0;
+}
+
 void USART3_IRQHandler(void)
 {
     UART_HandleTypeDef *huart = &atUartDev.handler;
@@ -131,7 +137,7 @@ int esp8266CtrlGpioInit(void)
 
     return 0;
 }
-INIT_BOARD_EXPORT(esp8266CtrlGpioInit);
+//INIT_BOARD_EXPORT(esp8266CtrlGpioInit);
 
 void esp8266HardReset(void)
 {

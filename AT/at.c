@@ -1,5 +1,7 @@
 #include "at.h"
 
+#define DEFAULT_AT_TIMEOUT 10
+
 atDevice_t espDevice;
 
 int atCmd(int argc, char *argv[])
@@ -17,7 +19,7 @@ int atCmd(int argc, char *argv[])
     ret = sendAtData(cmd, strlen(cmd));
     if(ret != 0)
     {
-        rt_kprintf("send at cmd error\n");
+        rt_kprintf("Send at cmd error\n");
         return -1;
     }
     ret = receiveAtData(recvBuff, sizeof(recvBuff), 100);
@@ -32,8 +34,68 @@ int atCmd(int argc, char *argv[])
 }
 MSH_CMD_EXPORT(atCmd, Send AT instructions manually);
 
-int cmdExchange(char *cmd, int cmdLen, char *data, int *dataLen)
+int atDebug(int argc, char *argv[])
 {
+    if(espDevice.isDebugMode)
+        espDevice.isDebugMode = 0;
+    else
+        espDevice.isDebugMode = 1;
+    return 0;
+}
+
+int cmdExchange(char *cmd, int cmdLen, char *data, int dataLen, int timeout)
+{
+    int ret;
+
+    ret = sendAtData(cmd, cmdLen);
+    if(ret != 0)
+    {
+        AT_ERROR("Send at cmd error\n");
+        return -1;
+    }
+    ret = receiveAtData(data, dataLen, timeout);
+    return ret;
+}
+
+int checkAtModule(void)
+{
+    int ret;
+    char *atTestCmd = "AT\r\n";
+    char recv[15] = {0};
+
+    rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
+    AT_SEND("%s", atTestCmd);
+    cmdExchange(atTestCmd, strlen(atTestCmd), recv, sizeof(recv), DEFAULT_AT_TIMEOUT);
+    AT_RECV("%s", recv);
+    if(strstr(recv, "OK") == NULL)
+        ret = -1;
+    else
+        ret = 0;
+    rt_mutex_release(&espDevice.mutex);
+    return ret;
+}
+
+int usrAtTask(int arg)
+{
+    rt_err_t ret;
+
+    memset(&espDevice, 0, sizeof(atDevice_t));
+    espDevice.status = AT_DEV_UNKNOWN;
+    clearReceiveRngBuff();  /* 清除WIFI模块上电时的错误数据 */
+    ret = rt_mutex_init(&espDevice.mutex, "at_mutex", RT_IPC_FLAG_PRIO);
+    if(ret != RT_EOK)
+    {
+        AT_ERROR("Init mutex error\n");
+        return -1;
+    }
+
+    while(1)
+    {
+        if(checkAtModule() == 0)
+            break;
+        rt_thread_mdelay(1000);
+    }
+    espDevice.status = AT_DEV_POWER_ON;
 
     return 0;
 }

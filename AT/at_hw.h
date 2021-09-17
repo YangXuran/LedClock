@@ -23,6 +23,7 @@ typedef struct{
 int atUartInit(void);
 int sendAtData(char *data, int length);
 int receiveAtData(char *buffer, int length, int timeout);
+int clearReceiveRngBuff(void);
 int esp8266CtrlGpioInit(void);
 void esp8266HardReset(void);
 

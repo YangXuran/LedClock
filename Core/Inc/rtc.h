@@ -41,7 +41,12 @@ extern RTC_HandleTypeDef hrtc;
 void MX_RTC_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+int saveDate2BkupReg(void);
+int saveDate2BkupRegTask(int arg);
+int printRtcTime(void);
+int calculateWeek(int year, int month, int day);
+int setDate(int argc, char *argv[]);
+int setTime(int argc, char *argv[]);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
