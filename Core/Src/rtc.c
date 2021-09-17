@@ -51,9 +51,19 @@ void MX_RTC_Init(void)
   }
 
   /* USER CODE BEGIN Check_RTC_BKUP */
-  /* TODO: STM32F1无法保存日期，需要手动写入备份寄存器中 */
+  /* STM32F1无法保存日期，需要手动写入备份寄存器中并在启动时读出 */
   if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) ==  0x5A5A)
+  {
+      DateToUpdate.Year = (uint8_t)HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+      DateToUpdate.Month = (uint8_t)HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
+      DateToUpdate.Date = (uint8_t)HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
+      DateToUpdate.WeekDay = (uint8_t)HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR5);
+      if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BCD) != HAL_OK)
+      {
+          Error_Handler();
+      }
       return;
+  }
 
   HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x5A5A);
   /* USER CODE END Check_RTC_BKUP */
@@ -126,6 +136,27 @@ int sysRtcInit(void)
 }
 INIT_BOARD_EXPORT(sysRtcInit);
 
+int saveDate2BkupReg(void)
+{
+    RTC_DateTypeDef rtcDate;
+
+    HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
+    HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, rtcDate.Year);
+    HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR3, rtcDate.Month);
+    HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR4, rtcDate.Date);
+    HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR5, rtcDate.WeekDay);
+    return 0;
+}
+
+int saveDate2BkupRegTask(int arg)
+{
+    while(1)
+    {
+        rt_thread_mdelay(1000);
+        saveDate2BkupReg();
+    }
+}
+
 int printRtcTime(void)
 {
     RTC_TimeTypeDef rtcTime;
@@ -188,6 +219,7 @@ int setDate(int argc, char *argv[])
         rt_kprintf("Set Date Error\n");
         return -1;
     }
+    saveDate2BkupReg();
     return 0;
 err:
     rt_kprintf("Parameter error, e.g., setDate 2021/09/11\n");
