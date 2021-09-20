@@ -5,6 +5,12 @@
 uartDevice_t atUartDev;
 
 /************************* CHIP UART *******************************/
+
+/**
+ * @brief AT指令串口初始化
+ * 
+ * @return int 0:成功，-1:失败
+ */
 int atUartInit(void)
 {
     atUartDev.handler.Instance = AT_DEV_UART;
@@ -31,6 +37,13 @@ int atUartInit(void)
 }
 INIT_BOARD_EXPORT(atUartInit);
 
+/**
+ * @brief 发送AT指令
+ * 
+ * @param data 指令指针
+ * @param length 指令长度
+ * @return int 0:成功，-1:参数错误
+ */
 int sendAtData(char *data, int length)
 {
     int putLen;
@@ -49,6 +62,14 @@ int sendAtData(char *data, int length)
     return 0;
 }
 
+/**
+ * @brief 接收AT指令应答
+ * 
+ * @param buffer 接收缓冲区指针
+ * @param length 接受缓冲区长度
+ * @param timeout 超时等待时间，单位ms
+ * @return int 实际接收数据长度
+ */
 int receiveAtData(char *buffer, int length, int timeout)
 {
     int getLen = 0, receiveCount = 0;
@@ -58,22 +79,36 @@ int receiveAtData(char *buffer, int length, int timeout)
     receiveCount += getLen;
     while(receiveCount != length)
     {
-        ret = rt_sem_take(&atUartDev.rxSem, timeout);
-        if(ret == -RT_ETIMEOUT)
-            return receiveCount;
-        else
-            getLen = rt_ringbuffer_get(&atUartDev.rxRingCb, (uint8_t*)(buffer+receiveCount), length-receiveCount);
-        receiveCount += getLen;
+    	rt_thread_mdelay(1);
+//        ret = rt_sem_take(&atUartDev.rxSem, timeout);
+//        if(ret == -RT_ETIMEOUT)
+//            return receiveCount;
+//        else
+//            getLen = rt_ringbuffer_get(&atUartDev.rxRingCb, (uint8_t*)(buffer+receiveCount), length-receiveCount);
+    	getLen = rt_ringbuffer_get(&atUartDev.rxRingCb, (uint8_t*)(buffer+receiveCount), length-receiveCount);
+    	if(getLen == 0 && timeout == 0)
+    		break;
+    	timeout--;
+    	receiveCount += getLen;
     }
     return receiveCount;
 }
 
+/**
+ * @brief 清除接收缓冲区数据
+ * 
+ * @return int 返回0
+ */
 int clearReceiveRngBuff(void)
 {
     rt_ringbuffer_reset(&atUartDev.rxRingCb);
     return 0;
 }
 
+/**
+ * @brief UART3 IRQ Handler
+ * 
+ */
 void USART3_IRQHandler(void)
 {
     UART_HandleTypeDef *huart = &atUartDev.handler;
@@ -96,7 +131,7 @@ void USART3_IRQHandler(void)
       {
           dataByte = (uint8_t)(huart->Instance->DR & (uint8_t)0x00FF);
           rt_ringbuffer_put(&atUartDev.rxRingCb, &dataByte, 1);
-          rt_sem_release(&atUartDev.rxSem);
+//          rt_sem_release(&atUartDev.rxSem);
       }
       /* UART in mode Transmitter ------------------------------------------------*/
       if (((isrflags & USART_SR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
@@ -116,6 +151,12 @@ void USART3_IRQHandler(void)
 }
 
 /************************* CHIP PIN *******************************/
+
+/**
+ * @brief 使能ESP8266芯片
+ * 
+ * @return int 返回0
+ */
 int esp8266CtrlGpioInit(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
@@ -137,8 +178,12 @@ int esp8266CtrlGpioInit(void)
 
     return 0;
 }
-//INIT_BOARD_EXPORT(esp8266CtrlGpioInit);
+INIT_BOARD_EXPORT(esp8266CtrlGpioInit);
 
+/**
+ * @brief ESP8266硬复位
+ * 
+ */
 void esp8266HardReset(void)
 {
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, 0);
