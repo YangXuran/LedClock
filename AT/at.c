@@ -302,6 +302,27 @@ int getSelfIp(char *ip, int length)
     return 0;
 }
 
+/* TODO: 简易HTTP待实现 */
+int simpleHttpGet(char *url, int timeout)
+{
+    int i;
+    char *pStr;
+    char domain[64] = {0};
+
+    if((pStr = strstr(url, "http://")) == NULL)
+        return -1;
+
+    pStr += strlen("http://");
+    for(i=0; i<sizeof(domain); i++)
+    {
+        if(*pStr != '/')
+            domain[i] = *pStr++;
+    }
+    rt_kprintf("%s\n", domain);
+
+    return 0;
+}
+
 /**
  * @brief WIFI模块管理任务
  * 
@@ -369,8 +390,8 @@ init:
             rt_kprintf("WIFI Connect, IP:%s\n", ip);
         }
         espDevice.status = AT_DEV_CONNECT_NET;
-        break;
-        rt_thread_mdelay(1000);
+        while(1)
+            rt_thread_mdelay(1000);
     }
     return 0;
 
