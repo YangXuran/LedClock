@@ -64,11 +64,11 @@ static char clockDisplayTask_stack[1024];
 static struct rt_thread clockDisplayTask_tb;
 
 ALIGN(RT_ALIGN_SIZE)
-static char saveDate_stack[256];
-static struct rt_thread saveDate_tb;
+static char time_stack[4096];
+static struct rt_thread time_tb;
 
 ALIGN(RT_ALIGN_SIZE)
-static char wifiCtrl_stack[1024];
+static char wifiCtrl_stack[8192];
 static struct rt_thread wifiCtrl_tb;
 
 /* 信号量 */
@@ -167,6 +167,23 @@ void clockDisplayTask(int arg)
     }
 }
 
+extern AT_DEVICE_STATUS getWifiStatus(void);
+void timeCalibration(int arg)
+{
+    char timeJson[128] = {0};
+    while(1)
+    {
+        if(getWifiStatus() == AT_DEV_CONNECT_NET)
+        {
+            simpleHttpGet("http://quan.suning.com/getSysTime.do",
+                            timeJson, sizeof(timeJson), 100);
+            rt_kprintf("%s", timeJson);
+        }
+        saveDate2BkupReg();
+        rt_thread_mdelay(5000);
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -221,16 +238,16 @@ threadInit:
                   5);
   rt_thread_startup(&clockDisplayTask_tb);
 
-  /* 日期储存线程 */
-  rt_thread_init(&saveDate_tb,
-                  "date_save",
-                  (void(*))&saveDate2BkupRegTask,
+  /* 时间校准线程 */
+  rt_thread_init(&time_tb,
+                  "time_calibration",
+                  (void(*))&timeCalibration,
                   NULL,
-                  saveDate_stack,
-                  sizeof(saveDate_stack),
+                  time_stack,
+                  sizeof(time_stack),
                   30,
                   5);
-  rt_thread_startup(&saveDate_tb);
+  rt_thread_startup(&time_tb);
 
   /* WIFI模块控制线程 */
   rt_thread_init(&wifiCtrl_tb,

@@ -5,6 +5,11 @@
 
 static atDevice_t espDevice;
 
+AT_DEVICE_STATUS getWifiStatus(void)
+{
+    return espDevice.status;
+}
+
 /**
  * @brief 重新格式化并打印AT指令
  *  将回车换行ASCII码转换为"\r"和"\n"打印
@@ -292,34 +297,98 @@ int getSelfIp(char *ip, int length)
         rt_mutex_release(&espDevice.mutex);
         return -1;
     }
-    rt_mutex_release(&espDevice.mutex);
     for(i=j=0; i<strlen(ip); i++)
     {
         if(ip[i] != '\"')
             ip[j++] = ip[i];
     }
     ip[j] = 0;
+    rt_mutex_release(&espDevice.mutex);
     return 0;
 }
 
-/* TODO: 简易HTTP待实现 */
-int simpleHttpGet(char *url, int timeout)
+int atRaw2TcpResponse(char *data)
 {
-    int i;
-    char *pStr;
-    char domain[64] = {0};
+    int i = 0, count = 0, length = 0;
+    char *pStr = data;
 
-    if((pStr = strstr(url, "http://")) == NULL)
+    while(*data != 0)
+    {
+        if((data = strstr(data, "+IPD,")) == NULL)
+            return count;
+        data += strlen("+IPD,");
+        while(*data >= '0' && *data <= '9')
+            length = length*10 + *data++ - '0';
+        data++;
+        if(i == 0) /* 跳过响应头 */
+        {
+            i++;
+            length = 0;
+            continue;
+        }
+        memcpy(pStr, data, length);
+        count += length;
+        pStr += length;
+        data += length;
+        length = 0;
+    }
+    return count;
+}
+
+/* TODO: 简易HTTP待实现 */
+int simpleHttpGet(char *url, char *resp, int respLen, int timeout)
+{
+    int i, ret;
+    char *pUrl;
+    char cmd[256] = {0};
+    char domain[64] = {0};
+    char path[128] = {0};
+    char data[2048] = {0};
+    char httpRequest[512] = {0};
+
+    if((pUrl = strstr(url, "http://")) == NULL)
         return -1;
 
-    pStr += strlen("http://");
+    rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
+    pUrl += strlen("http://");
     for(i=0; i<sizeof(domain); i++)
     {
-        if(*pStr != '/')
-            domain[i] = *pStr++;
+        if(*pUrl != '/')
+            domain[i] = *pUrl++;
+        else
+            break;
     }
-    rt_kprintf("%s\n", domain);
-
+    strcpy(path, pUrl);
+    snprintf(httpRequest, sizeof(httpRequest), "GET %s HTTP/1.1\r\nHOST: %s\r\n\r\n", path, domain);
+    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",80\r\n", domain);
+    ret = getCmdParameter(cmd, "OK", NULL, 0, timeout);
+    if(ret != 0)
+    {
+        getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 1);
+        rt_mutex_release(&espDevice.mutex);
+        return -1;
+    }
+    memset(cmd, 0, sizeof(cmd));
+    snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%d\r\n", strlen(httpRequest));
+    ret = getCmdParameter(cmd, ">", NULL, 0, 10);
+    if(ret != 0)
+    {
+        getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 1);
+        rt_mutex_release(&espDevice.mutex);
+        return -1;
+    }
+    ret = cmdExchange(httpRequest, strlen(httpRequest), data, sizeof(data), timeout);
+    if(ret == -1)
+    {
+        getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 1);
+        rt_mutex_release(&espDevice.mutex);
+        return -1;
+    }
+    ret = atRaw2TcpResponse(data);
+    ret = respLen >= ret ? ret : respLen;
+    memcpy(resp, data, ret);
+    getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 0);
+    rt_mutex_release(&espDevice.mutex);
     return 0;
 }
 
@@ -388,12 +457,10 @@ init:
         }else if(espDevice.status != AT_DEV_CONNECT_NET)
         {
             rt_kprintf("WIFI Connect, IP:%s\n", ip);
+            espDevice.status = AT_DEV_CONNECT_NET;
         }
-        espDevice.status = AT_DEV_CONNECT_NET;
-        while(1)
-            rt_thread_mdelay(1000);
+        rt_thread_mdelay(5000);
     }
-    return 0;
 
 rst:
     esp8266HardReset();

@@ -148,15 +148,6 @@ int saveDate2BkupReg(void)
     return 0;
 }
 
-int saveDate2BkupRegTask(int arg)
-{
-    while(1)
-    {
-        rt_thread_mdelay(1000);
-        saveDate2BkupReg();
-    }
-}
-
 int printRtcTime(void)
 {
     RTC_TimeTypeDef rtcTime;
