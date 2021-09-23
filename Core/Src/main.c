@@ -44,7 +44,7 @@
 #define TIME_X              10
 #define TIME_Y              1
 #define FRAME_PRE_SECOND    60
-#define DEFAULE_TIME_COLOR  0xE0E0E0
+#define DEFAULE_TIME_COLOR  0x303030
 #define MAGIC_TIME_COLOR    0xFF0000
 
 /* USER CODE END PD */
@@ -68,7 +68,7 @@ static char time_stack[4096];
 static struct rt_thread time_tb;
 
 ALIGN(RT_ALIGN_SIZE)
-static char wifiCtrl_stack[8192];
+static char wifiCtrl_stack[1024];
 static struct rt_thread wifiCtrl_tb;
 
 /* 信号量 */
@@ -159,28 +159,11 @@ void clockDisplayTask(int arg)
                 rt_sem_take(&pwmSem, RT_WAITING_FOREVER);
                 matrix2pwm();
                 HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, (uint32_t *)getPwmDmaRamAddr(), getPwmDmaRamSize());
-                rt_thread_mdelay(1000/FRAME_PRE_SECOND);
+                rt_thread_mdelay((1000/FRAME_PRE_SECOND)-100);
             }
             rtcTimeLast_u32 = rtcTime_u32;
         }
         rt_thread_mdelay(100);
-    }
-}
-
-extern AT_DEVICE_STATUS getWifiStatus(void);
-void timeCalibration(int arg)
-{
-    char timeJson[128] = {0};
-    while(1)
-    {
-        if(getWifiStatus() == AT_DEV_CONNECT_NET)
-        {
-            simpleHttpGet("http://quan.suning.com/getSysTime.do",
-                            timeJson, sizeof(timeJson), 100);
-            rt_kprintf("%s", timeJson);
-        }
-        saveDate2BkupReg();
-        rt_thread_mdelay(5000);
     }
 }
 
@@ -245,7 +228,7 @@ threadInit:
                   NULL,
                   time_stack,
                   sizeof(time_stack),
-                  30,
+                  12,
                   5);
   rt_thread_startup(&time_tb);
 
@@ -256,7 +239,7 @@ threadInit:
                   NULL,
                   wifiCtrl_stack,
                   sizeof(wifiCtrl_stack),
-                  20,
+                  30,
                   5);
   rt_thread_startup(&wifiCtrl_tb);
 

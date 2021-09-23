@@ -54,6 +54,8 @@ typedef struct{
                     rt_kprintf("##\n");} }while(0)
 
 int usrAtTask(int arg);
+AT_DEVICE_STATUS getWifiStatus(void);
+int simpleHttpGet(const char *url, char *resp, int respLen, int timeout);
 #ifdef __cplusplus
 }
 #endif

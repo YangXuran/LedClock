@@ -253,6 +253,54 @@ err:
     return -1;
 }
 MSH_CMD_EXPORT(setTime, "Set RTC time, e.g. setTime 21:39");
+
+const char *snTimeUrl = "http://quan.suning.com/getSysTime.do";
+void timeCalibration(int arg)
+{
+    RTC_DateTypeDef rtcDate;
+    RTC_TimeTypeDef rtcTime;
+    char timeJson[128] = {0};
+    char *pTimeJson = timeJson;
+
+    rt_thread_mdelay(5000);
+    while(1)
+    {
+        /* {"sysTime2":"2021-09-23 21:05:52","sysTime1":"20210923210552"} */
+        if(getWifiStatus() == AT_DEV_CONNECT_NET)
+        {
+            memset(timeJson, 0, sizeof(timeJson));
+            simpleHttpGet(snTimeUrl, timeJson, sizeof(timeJson), 100);
+            if((pTimeJson = strstr(timeJson, "\"sysTime1\":\"")) == NULL)
+                continue;
+            pTimeJson += strlen("\"sysTime1\":\"");
+            rtcDate.Year = ((pTimeJson[0] - '0') << 12) |
+                           ((pTimeJson[1] - '0') << 8)  |
+                           ((pTimeJson[2] - '0') << 4)  |
+                           ((pTimeJson[3] - '0') << 0);
+            rtcDate.Month = ((pTimeJson[4] - '0') << 4) |
+                            ((pTimeJson[5] - '0') << 0);
+            rtcDate.Date = ((pTimeJson[6] - '0') << 4) |
+                           ((pTimeJson[7] - '0') << 0);
+            rtcDate.WeekDay = calculateWeek((pTimeJson[0] - '0')*1000 + (pTimeJson[1] - '0')*100 + (pTimeJson[2] - '0')*10 + (timeJson[3] - '0'),
+                                            (pTimeJson[4] - '0')*10 + (pTimeJson[5] - '0'),
+                                            (pTimeJson[6] - '0')*10 + (pTimeJson[7] - '0'));
+            if(rtcDate.WeekDay == 0)
+                rtcDate.WeekDay = 7;
+
+            rtcTime.Hours = ((pTimeJson[8] - '0') << 4) | ((pTimeJson[9] - '0'));
+            rtcTime.Minutes = ((pTimeJson[10] - '0') << 4) | ((pTimeJson[11] - '0'));
+            rtcTime.Seconds = ((pTimeJson[12] - '0') << 4) | ((pTimeJson[13] - '0'));
+
+            HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
+            HAL_RTC_SetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
+            rt_kprintf("Time calibration completed: ");
+            printRtcTime();
+        }
+        saveDate2BkupReg();
+        rt_thread_mdelay(10*60*1000);
+    }
+}
+
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

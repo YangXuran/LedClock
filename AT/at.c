@@ -142,6 +142,8 @@ int getCmdParameter(char *cmd, char *keywords, char *parameter, int paramLen, in
     if(pKeywords == NULL)
         return -1;	/* no keywords */
     pKeywords += strlen(keywords);
+    if(parameter == NULL || paramLen == 0)
+        return 0;
     for(i=0; i<paramLen; i++)
     {
         if(pKeywords[i] != 0x0A && pKeywords[i] != 0x0D)
@@ -336,7 +338,7 @@ int atRaw2TcpResponse(char *data)
 }
 
 /* TODO: 简易HTTP待实现 */
-int simpleHttpGet(char *url, char *resp, int respLen, int timeout)
+int simpleHttpGet(const char *url, char *resp, int respLen, int timeout)
 {
     int i, ret;
     char *pUrl;
@@ -392,6 +394,22 @@ int simpleHttpGet(char *url, char *resp, int respLen, int timeout)
     return 0;
 }
 
+int atModuleInit(void)
+{
+    int ret;
+
+    memset(&espDevice, 0, sizeof(atDevice_t));
+    clearReceiveRngBuff();  /* 清除WIFI模块上电时的错误数据 */
+    ret = rt_mutex_init(&espDevice.mutex, "at_mutex", RT_IPC_FLAG_FIFO);
+    if(ret != RT_EOK)
+    {
+        AT_ERROR("Init mutex error\n");
+        return -1;
+    }
+    return 0;
+}
+INIT_BOARD_EXPORT(atModuleInit);
+
 /**
  * @brief WIFI模块管理任务
  * 
@@ -403,14 +421,14 @@ int usrAtTask(int arg)
     int ret, i;
     char ip[20] = {0};
 
-    memset(&espDevice, 0, sizeof(atDevice_t));
-    clearReceiveRngBuff();  /* 清除WIFI模块上电时的错误数据 */
-    ret = rt_mutex_init(&espDevice.mutex, "at_mutex", RT_IPC_FLAG_PRIO);
-    if(ret != RT_EOK)
-    {
-        AT_ERROR("Init mutex error\n");
-        return -1;
-    }
+//    memset(&espDevice, 0, sizeof(atDevice_t));
+//    clearReceiveRngBuff();  /* 清除WIFI模块上电时的错误数据 */
+//    ret = rt_mutex_init(&espDevice.mutex, "at_mutex", RT_IPC_FLAG_FIFO);
+//    if(ret != RT_EOK)
+//    {
+//        AT_ERROR("Init mutex error\n");
+//        return -1;
+//    }
 
 init:
     espDevice.status = AT_DEV_UNKNOWN;
@@ -457,6 +475,7 @@ init:
         }else if(espDevice.status != AT_DEV_CONNECT_NET)
         {
             rt_kprintf("WIFI Connect, IP:%s\n", ip);
+            rt_thread_mdelay(1000);
             espDevice.status = AT_DEV_CONNECT_NET;
         }
         rt_thread_mdelay(5000);

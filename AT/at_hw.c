@@ -56,7 +56,7 @@ int sendAtData(char *data, int length)
         __HAL_UART_ENABLE_IT(&atUartDev.handler, UART_IT_TXE);
         length -= putLen;
         data += putLen;
-        rt_thread_delay(10);
+        rt_thread_mdelay(1);
     }while(length != 0);
 
     return 0;
@@ -86,7 +86,7 @@ int receiveAtData(char *buffer, int length, int timeout)
 //        else
 //            getLen = rt_ringbuffer_get(&atUartDev.rxRingCb, (uint8_t*)(buffer+receiveCount), length-receiveCount);
     	getLen = rt_ringbuffer_get(&atUartDev.rxRingCb, (uint8_t*)(buffer+receiveCount), length-receiveCount);
-    	if(getLen == 0 && timeout == 0)
+    	if(getLen == 0 && timeout <= 0)
     		break;
     	timeout--;
     	receiveCount += getLen;

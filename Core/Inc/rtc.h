@@ -30,6 +30,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include <rtthread.h>
 #include <string.h>
+#include "at.h"
 /* USER CODE END Includes */
 
 extern RTC_HandleTypeDef hrtc;
@@ -47,6 +48,7 @@ int printRtcTime(void);
 int calculateWeek(int year, int month, int day);
 int setDate(int argc, char *argv[]);
 int setTime(int argc, char *argv[]);
+void timeCalibration(int arg);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
