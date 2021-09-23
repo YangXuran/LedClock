@@ -111,6 +111,19 @@ void clockDisplayTask(int arg)
 
     rt_sem_init(&pwmSem, "pwm_sem", 1, RT_IPC_FLAG_FIFO);
 
+    timeColor.color = DEFAULE_TIME_COLOR;
+    getTimeFonts(10, &font);
+    displayChar(TIME_X+7, TIME_Y, &font, timeColor);
+    for(clkNum=0; clkNum<4; clkNum++)
+    {
+        /* 时间取模 */
+        digit =(rtcTime_u32>>(20-4*clkNum))&0xF;
+        digitLast = (rtcTimeLast_u32>>(20-4*clkNum))&0xF;
+        getTimeFonts(digit, &font);
+        timeColor.color = DEFAULE_TIME_COLOR;
+        displayChar(clkNum>1 ? TIME_X+2+clkNum*(font.width+1) : TIME_X+clkNum*(font.width+1), TIME_Y, &font, timeColor);
+    }
+
     while(1)
     {
         HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
