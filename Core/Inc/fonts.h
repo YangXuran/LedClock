@@ -35,6 +35,7 @@ typedef struct{
 } pattern_t;
 
 int getTimeFonts(int number, font_t *font);
+int getWifiPattern(int index, pattern_t *pattern);
 void adjustPixelBrightness(uint8_t value, rgbPoint_u *pixel, uint32_t length);
 void mixChar2Pattern(pattern_t *pattern,
                      const font_t *font1, const rgbPoint_u color1,

@@ -59,7 +59,7 @@
 /* USER CODE BEGIN PV */
 
 /* 任务栈与控制块 */
- ALIGN(RT_ALIGN_SIZE)
+ALIGN(RT_ALIGN_SIZE)
 static char clockDisplayTask_stack[1024];
 static struct rt_thread clockDisplayTask_tb;
 
@@ -71,9 +71,6 @@ ALIGN(RT_ALIGN_SIZE)
 static char wifiCtrl_stack[1024];
 static struct rt_thread wifiCtrl_tb;
 
-/* 信号量 */
-struct rt_semaphore pwmSem; /* LED点阵PWM刷新锁 */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,15 +81,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
-{
-    rt_interrupt_enter();
-    HAL_TIM_PWM_Stop_DMA(&htim1,TIM_CHANNEL_1);
-    rt_sem_release(&pwmSem);
-    rt_interrupt_leave();
-}
-
 uint8_t getBrightness(void)
 {
     return 255;
@@ -109,8 +97,8 @@ void clockDisplayTask(int arg)
     rgbPoint_u mixedPatternPixel[TIME_NUMBER_WIDTH*TIME_NUMBER_HIGHT];
     pattern_t mixedPattern;
 
-    rt_sem_init(&pwmSem, "pwm_sem", 1, RT_IPC_FLAG_FIFO);
-
+    rt_thread_mdelay(1000);
+    takeScreenMutex();
     timeColor.color = DEFAULE_TIME_COLOR;
     getTimeFonts(10, &font);
     displayChar(TIME_X+7, TIME_Y, &font, timeColor);
@@ -123,6 +111,7 @@ void clockDisplayTask(int arg)
         timeColor.color = DEFAULE_TIME_COLOR;
         displayChar(clkNum>1 ? TIME_X+2+clkNum*(font.width+1) : TIME_X+clkNum*(font.width+1), TIME_Y, &font, timeColor);
     }
+    releaseScreenMutex();
 
     while(1)
     {
@@ -134,6 +123,7 @@ void clockDisplayTask(int arg)
             /* nothing to do here */
         }else
         {
+            takeScreenMutex();
             for(frameCount=0; frameCount<FRAME_PRE_SECOND; frameCount++)
             {
                 /* 时与分间冒号 */
@@ -169,15 +159,33 @@ void clockDisplayTask(int arg)
                     }
                 }
 
-                rt_sem_take(&pwmSem, RT_WAITING_FOREVER);
-                matrix2pwm();
-                HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, (uint32_t *)getPwmDmaRamAddr(), getPwmDmaRamSize());
+                screenRefresh();
                 rt_thread_mdelay((1000/FRAME_PRE_SECOND)-100);
             }
+            releaseScreenMutex();
             rtcTimeLast_u32 = rtcTime_u32;
         }
         rt_thread_mdelay(100);
     }
+}
+
+void showWeather(void)
+{
+  int index = 0;
+  pattern_t wifiPattern;
+
+  rt_thread_mdelay(1100);
+  while(getWifiStatus() != AT_DEV_CONNECT_NET)
+  {
+    takeScreenMutex();
+    getWifiPattern(index, &wifiPattern);
+    displayPattern(1, 0, &wifiPattern);
+    screenRefresh();
+    releaseScreenMutex();
+    rt_thread_mdelay(1000);
+    index = index ? 0 : 1;
+  }
+ 
 }
 
 /* USER CODE END 0 */
@@ -223,6 +231,8 @@ threadInit:
   rt_kprintf("System Start At: 20%02x/%02x/%02x  ", rtcDate.Year, rtcDate.Month, rtcDate.Date);
   rt_kprintf("%02x:%02x:%02x\n",rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
 
+  matrixScreenInit(); /* 点阵屏初始化 */
+
   /* 时间显示线程 */
   rt_thread_init(&clockDisplayTask_tb,
                   "clk_dpy",
@@ -256,7 +266,7 @@ threadInit:
                   5);
   rt_thread_startup(&wifiCtrl_tb);
 
-
+showWeather();
   /* USER CODE END 2 */
 
   /* Infinite loop */

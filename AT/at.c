@@ -5,6 +5,11 @@
 
 static atDevice_t espDevice;
 
+/**
+ * @brief 获取当前WIFI模块状态
+ * 
+ * @return AT_DEVICE_STATUS 当前状态枚举量
+ */
 AT_DEVICE_STATUS getWifiStatus(void)
 {
     return espDevice.status;
