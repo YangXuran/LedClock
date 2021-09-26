@@ -19,6 +19,8 @@ const rgbPoint_u wifiIcon[] = {{0x000000}, {0x000000}, {0xEDAFFA}, {0xE276F8}, {
                                {0x000000}, {0x000000}, {0x2CFF2C}, {0xE276F8}, {0xAA3AFF}, {0x000000}, {0x000000}, 
                                {0x000000}, {0x2CFF2C}, {0x000000}, {0x000000}, {0x000000}, {0x000000}, {0x000000},
                                {0x2CFF2C}, {0x000000}, {0x000000}, {0xAA3AFF}, {0x000000}, {0x000000}, {0x000000}};
+                        
+extern const rgbPoint_u weatherIcon[];
 
 int getTimeFonts(int number, font_t *font)
 {
@@ -35,6 +37,14 @@ int getWifiPattern(int index, pattern_t *pattern)
     pattern->width = 7;
     pattern->hight = 7;
     pattern->pixel = (rgbPoint_u*)(wifiIcon+7*7*index);
+    return 0;
+}
+
+int getWeatherPattern(int index, pattern_t *pattern)
+{
+    pattern->width = 7;
+    pattern->hight = 7;
+    pattern->pixel = (rgbPoint_u*)(weatherIcon+7*7*index);
     return 0;
 }
 
