@@ -7,11 +7,11 @@ def getFileName(path):
     f_list = os.listdir(path)
     for i in f_list:
         if os.path.splitext(i)[1] == '.png':
-            path_list.append(i)
+            path_list.append(os.path.splitext(i)[0])
     return path_list
 
 def getColorPoint(fileName):
-    img = Image.open('./tools/'+fileName)
+    img = Image.open('./weatherPng/'+fileName+'.png')
     img = img.convert('RGB')
     width, height = img.size
     src_strlist = img.load()
@@ -27,8 +27,18 @@ def getColorPoint(fileName):
                 wrap_count = 0
 
 sys.stdout = open('./Core/Src/weatherIcon.c', 'w')
-file_list = getFileName('./tools')
-print('#include "fonts.h"')
+file_list = getFileName('./weatherPng')
+
+print('#include "fonts.h"\n')
+print('const char *weatherIconStr[] = {')
+count = 0
+for file in file_list:
+    print("\"{}\",".format(file),end='')
+    count+=1
+    if count%10 == 0:
+        print('')
+print('};\n')
+
 print('const rgbPoint_u weatherIcon[] = {')
 for file in file_list:
     getColorPoint(file)
