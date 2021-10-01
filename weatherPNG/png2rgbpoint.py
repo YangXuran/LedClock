@@ -30,10 +30,10 @@ sys.stdout = open('./Core/Src/weatherIcon.c', 'w')
 file_list = getFileName('./weatherPng')
 
 print('#include "fonts.h"\n')
-print('const char *weatherIconStr[] = {')
+print('const int weatherIconIndex[] = {')
 count = 0
 for file in file_list:
-    print("\"{}\",".format(file),end='')
+    print("{}, ".format(file),end='')
     count+=1
     if count%10 == 0:
         print('')
