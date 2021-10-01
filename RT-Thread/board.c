@@ -110,6 +110,7 @@ static int uart_init(void)
 }
 INIT_BOARD_EXPORT(uart_init);
 
+#if 0 /* RTT中如果使用中断发送，则会导致异常发生时无法打印rt_hw_hard_fault_exception中的信息 */
 void rt_hw_console_output(const char *str)
 {
     int i;
@@ -125,13 +126,32 @@ void rt_hw_console_output(const char *str)
         if (*(str + i) == '\n')
         {
             while(rt_ringbuffer_putchar(&consoleUartDev.txRingCb, (const rt_uint8_t)a) == 0)
-                rt_thread_delay(1);
+                __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_TXE);
         }
         while(rt_ringbuffer_putchar(&consoleUartDev.txRingCb, (const rt_uint8_t)*(str+i)) == 0)
-            rt_thread_delay(1);
+            __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_TXE);
     }
     __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_TXE);
 }
+#else
+void rt_hw_console_output(const char *str)
+{
+    rt_size_t i = 0, size = 0;
+    char a = '\r';
+
+    __HAL_UNLOCK(&UartHandle);
+
+    size = rt_strlen(str);
+    for (i = 0; i < size; i++)
+    {
+        if (*(str + i) == '\n')
+        {
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)&a, 1, 1);
+        }
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)(str + i), 1, 1);
+    }
+}
+#endif
 #endif
 
 #ifdef RT_USING_FINSH
