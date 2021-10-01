@@ -326,6 +326,19 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+int showWeatherIcon(int argc, char *argv[])
+{
+    pattern_t weatherIcon;
+
+    getWeatherPattern(atoi(argv[1]), &weatherIcon);
+    takeScreenMutex();
+    displayPattern(1, 0, &weatherIcon);
+    screenRefresh();
+    releaseScreenMutex();
+    return 0;
+}
+MSH_CMD_EXPORT(showWeatherIcon, "Show weather icon");
+
 /* USER CODE END 4 */
 
 /**
