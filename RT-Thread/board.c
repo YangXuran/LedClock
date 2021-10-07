@@ -160,6 +160,7 @@ char rt_hw_console_getchar(void)
     /* Note: the initial value of ch must < 0 */
     char ch;
 
+    __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_RXNE);
     while (rt_ringbuffer_getchar(&consoleUartDev.rxRingCb, (rt_uint8_t *)&ch) != 1)
     {
         rt_sem_take(&consoleUartDev.rxSem, RT_WAITING_FOREVER);
