@@ -52,6 +52,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/RealThread_RTOS/components/finsh"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/RealThread_RTOS/components/ringbuffer"/>
 									<listOptionValue builtIn="false" value="../AT/"/>
+									<listOptionValue builtIn="false" value="../EasyFlash/inc"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1975204385" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -108,6 +109,7 @@
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="AT"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="EasyFlash"/>
 						<entry excluding="Third_Party/RealThread_RTOS/bsp/_template" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="RT-Thread"/>
 					</sourceEntries>
