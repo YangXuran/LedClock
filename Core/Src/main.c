@@ -226,12 +226,15 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 threadInit:
+  easyflash_init();
   HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
   HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
   rt_kprintf("System Start At: 20%02x/%02x/%02x  ", rtcDate.Year, rtcDate.Month, rtcDate.Date);
   rt_kprintf("%02x:%02x:%02x\n",rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
 
   matrixScreenInit(); /* 点阵屏初始化 */
+
+  rt_thread_mdelay(1100);
 
   /* 时间显示线程 */
   rt_thread_init(&clockDisplayTask_tb,
@@ -243,7 +246,7 @@ threadInit:
                   10,
                   5);
   rt_thread_startup(&clockDisplayTask_tb);
-
+#if 0
   /* 时间校准线程 */
   rt_thread_init(&time_tb,
                   "time_calibration",
@@ -254,7 +257,7 @@ threadInit:
                   12,
                   5);
   rt_thread_startup(&time_tb);
-
+#endif
   /* WIFI模块控制线程 */
   rt_thread_init(&wifiCtrl_tb,
                   "wifi_ctrl",
@@ -266,7 +269,7 @@ threadInit:
                   5);
   rt_thread_startup(&wifiCtrl_tb);
 
-showWeather();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -337,7 +340,7 @@ int showWeatherIcon(int argc, char *argv[])
     releaseScreenMutex();
     return 0;
 }
-MSH_CMD_EXPORT(showWeatherIcon, "Show weather icon");
+MSH_CMD_EXPORT(showWeatherIcon, Show weather icon);
 
 /* USER CODE END 4 */
 
