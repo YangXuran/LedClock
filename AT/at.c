@@ -192,25 +192,11 @@ int setWifiMode(WIFI_MODE mode)
 {
     int ret = 0;
     WIFI_MODE lastMode;
-    char *setModeCmd = "AT+CWMODE_DEF";
+    char *setModeCmd = "AT+CWMODE";
     char cmd[18] = {0};
     char recv[10] = {0};
 
     rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
-    sprintf(cmd, "%s?\r\n", setModeCmd);
-    ret = getCmdParameter(cmd, "+CWMODE_DEF:", recv, sizeof(recv), DEFAULT_AT_TIMEOUT);
-    if(ret == -1)
-    {
-        AT_ERROR("Get AT response keywords error\n");
-        rt_mutex_release(&espDevice.mutex);
-        return -1;
-    }
-    lastMode = recv[0] - '0';
-    if(lastMode == mode)
-    {
-        rt_mutex_release(&espDevice.mutex);
-        return 0;
-    }
     sprintf(cmd, "%s=%d\r\n", setModeCmd, mode);
     ret = getCmdParameter(cmd, "OK", recv, sizeof(recv), DEFAULT_AT_TIMEOUT);
     if(ret == -1)
@@ -231,7 +217,7 @@ int setWifiMode(WIFI_MODE mode)
 int checkWifiConnect(void)
 {
     int ret;
-    char *cmd = "AT+CWJAP_DEF?\r\n";
+    char *cmd = "AT+CWJAP?\r\n";
 
     rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
     ret = getCmdParameter(cmd, "No AP", NULL, 0, DEFAULT_AT_TIMEOUT);
@@ -256,7 +242,7 @@ int setWifi(int argc, char *argv[])
     int ret;
     char *pSsid = argv[1];
     char *pPasswd = argv[2];
-    char *swjapCmd = "AT+CWJAP_DEF";
+    char *swjapCmd = "AT+CWJAP";
     char cmd[128] = {0};
 
     if(argc < 3)
@@ -294,10 +280,10 @@ MSH_CMD_EXPORT(setWifi, Set WIFI SSID and password);
 int getSelfIp(char *ip, int length)
 {
     int ret, i, j;
-    char *cmd = "AT+CIFSR\r\n";
+    char *cmd = "AT+CIPSTA?\r\n";
 
     rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
-    ret = getCmdParameter(cmd, "+CIFSR:STAIP,", ip, length, DEFAULT_AT_TIMEOUT);
+    ret = getCmdParameter(cmd, "+CIPSTA:ip:", ip, length, DEFAULT_AT_TIMEOUT);
     if(ret == -1)
     {
         AT_ERROR("Get AT response keywords error\n");
@@ -426,15 +412,6 @@ int usrAtTask(int arg)
     int ret, i;
     char ip[20] = {0};
 
-//    memset(&espDevice, 0, sizeof(atDevice_t));
-//    clearReceiveRngBuff();  /* 清除WIFI模块上电时的错误数据 */
-//    ret = rt_mutex_init(&espDevice.mutex, "at_mutex", RT_IPC_FLAG_FIFO);
-//    if(ret != RT_EOK)
-//    {
-//        AT_ERROR("Init mutex error\n");
-//        return -1;
-//    }
-
 init:
     espDevice.status = AT_DEV_UNKNOWN;
     while(1)
@@ -458,28 +435,27 @@ init:
         goto rst;
     }
 
+    espDevice.status = AT_DEVICE_WAIT_NET_CONFIG;
     while(1)
     {
         for(i=0; i<DEFAULT_RETRY_TIME; i++)
         {
-            ret = getSelfIp(ip, sizeof(ip));
-            if(ret == 0)
+            ret = checkWifiConnect();
+            if(ret != -1)
                 break;
             rt_thread_mdelay(1000);
         }
-        if(ret != 0)
+        if(ret == -2)
         {
             AT_ERROR("ESP8266 no response\n");
             goto rst;
-        }
-        if(strstr(ip, "0.0.0.0") != NULL)
+        }else if(ret == 0 && espDevice.status != AT_DEV_CONNECT_NET)
         {
-            espDevice.status = AT_DEVICE_WAIT_NET_CONFIG;
-            rt_thread_mdelay(1000);
-            continue;
-        }else if(espDevice.status != AT_DEV_CONNECT_NET)
-        {
-            rt_kprintf("WIFI Connect, IP:%s\n", ip);
+            getSelfIp(ip, sizeof(ip));
+            rt_kprintf("WIFI CONNECT, IP:%s\n", ip);
+            rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
+            getCmdParameter("AT+CIPSNTPCFG=1,8,\"cn.ntp.org.cn\",\"ntp.sjtu.edu.cn\"", "OK", NULL, 0, 10);
+            rt_mutex_release(&espDevice.mutex);
             rt_thread_mdelay(1000);
             espDevice.status = AT_DEV_CONNECT_NET;
         }
