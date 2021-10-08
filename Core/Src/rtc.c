@@ -254,6 +254,7 @@ err:
 }
 MSH_CMD_EXPORT(setTime, "Set RTC time, e.g. setTime 21:39");
 
+#ifdef USE_HTTP_TIME
 const char *snTimeUrl = "http://quan.suning.com/getSysTime.do";
 void timeCalibration(int arg)
 {
@@ -300,6 +301,33 @@ void timeCalibration(int arg)
         rt_thread_mdelay(10*60*1000);
     }
 }
+#else
+void timeCalibration(int arg)
+{
+    RTC_DateTypeDef rtcDate;
+    RTC_TimeTypeDef rtcTime;
+    char timeJson[128] = {0};
+    char *pTimeJson = timeJson;
+
+    rt_thread_mdelay(5000);
+    while(1)
+    {
+        /* {"sysTime2":"2021-09-23 21:05:52","sysTime1":"20210923210552"} */
+        if(getWifiStatus() == AT_DEV_CONNECT_NET)
+        {
+            if(getNtpTime(&rtcDate, &rtcTime) == 0)
+            {
+                HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN);
+                HAL_RTC_SetDate(&hrtc, &rtcDate, RTC_FORMAT_BIN);
+                rt_kprintf("Time calibration completed: ");
+                printRtcTime();
+            }
+        }
+        saveDate2BkupReg();
+        rt_thread_mdelay(10*60*1000);
+    }
+}
+#endif
 
 /* USER CODE END 1 */
 

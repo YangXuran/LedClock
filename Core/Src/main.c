@@ -246,7 +246,7 @@ threadInit:
                   10,
                   5);
   rt_thread_startup(&clockDisplayTask_tb);
-#if 0
+
   /* 时间校准线程 */
   rt_thread_init(&time_tb,
                   "time_calibration",
@@ -257,7 +257,7 @@ threadInit:
                   12,
                   5);
   rt_thread_startup(&time_tb);
-#endif
+
   /* WIFI模块控制线程 */
   rt_thread_init(&wifiCtrl_tb,
                   "wifi_ctrl",

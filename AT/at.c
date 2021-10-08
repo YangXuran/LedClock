@@ -184,14 +184,13 @@ int checkAtModule(void)
  * @brief 配置ESP8266 WIFI模式
  * 
  * @param mode     STATION = 1,
- *                             SOFTAP = 2,
- *                             SOFTAP_STATION = 3
+ *                 SOFTAP = 2,
+ *                 SOFTAP_STATION = 3
  * @return int 0:配置成功，-1:配置失败
  */
 int setWifiMode(WIFI_MODE mode)
 {
     int ret = 0;
-    WIFI_MODE lastMode;
     char *setModeCmd = "AT+CWMODE";
     char cmd[18] = {0};
     char recv[10] = {0};
@@ -300,6 +299,12 @@ int getSelfIp(char *ip, int length)
     return 0;
 }
 
+/**
+ * @brief 从AT指令中提取TCP应答
+ * 去除AT指令返回时+IPD或其他字符
+ * @param data 数据指针 
+ * @return int 实际的应答长度
+ */
 int atRaw2TcpResponse(char *data)
 {
     int i = 0, count = 0, length = 0;
@@ -328,7 +333,15 @@ int atRaw2TcpResponse(char *data)
     return count;
 }
 
-/* TODO: 简易HTTP待实现 */
+/**
+ * @brief 简易HTTP实现
+ * 
+ * @param url URL地址
+ * @param resp 应答信息缓存
+ * @param respLen 应答缓存区长度
+ * @param timeout 超时时间
+ * @return int -1:错误，>=0:接收应答长度
+ */
 int simpleHttpGet(const char *url, char *resp, int respLen, int timeout)
 {
     int i, ret;
@@ -382,6 +395,45 @@ int simpleHttpGet(const char *url, char *resp, int respLen, int timeout)
     memcpy(resp, data, ret);
     getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 0);
     rt_mutex_release(&espDevice.mutex);
+    return ret;
+}
+
+/**
+ * @brief 获取NTP时间
+ * 
+ * @param date HAL库日期结构体
+ * @param time HAL库时间结构体
+ * @return int 0:成功,-1:失败
+ */
+int getNtpTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
+{
+    int ret, i;
+    char buff[40] = {0};
+    char weekStr[5] = {0};
+    char monthStr[5] = {0};
+    char *week[] = {"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+    char *month[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    int num[5] = {0};
+
+    ret = getCmdParameter("AT+CIPSNTPTIME?\r\n", "+CIPSNTPTIME:", buff, sizeof(buff), 100);
+    if(ret != 0)
+        return -1;
+    sscanf(buff, "%s %s  %d %d:%d:%d %d", weekStr, monthStr, &num[0], &num[1], &num[2], &num[3], &num[4]);
+    date->Date = num[0]; time->Hours = num[1]; time->Minutes = num[2]; time->Seconds = num[3]; date->Year = num[4]%100;
+    for(i=1; i<=7; i++)
+    {
+        if(strcmp(weekStr, week[i]) == 0)
+            break;
+    }
+    date->WeekDay = i;
+
+    for(i=1; i<=12; i++)
+    {
+        if(strcmp(monthStr, month[i]) == 0)
+            break;
+    }
+    date->Month = i;
+
     return 0;
 }
 
@@ -453,8 +505,10 @@ init:
         {
             getSelfIp(ip, sizeof(ip));
             rt_kprintf("WIFI CONNECT, IP:%s\n", ip);
+            rt_thread_mdelay(1000);
             rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
-            getCmdParameter("AT+CIPSNTPCFG=1,8,\"cn.ntp.org.cn\",\"ntp.sjtu.edu.cn\"", "OK", NULL, 0, 10);
+            /* 使能NTP */
+            getCmdParameter("AT+CIPSNTPCFG=1,8,\"cn.ntp.org.cn\",\"ntp.sjtu.edu.cn\"\r\n", "OK", NULL, 0, 10);
             rt_mutex_release(&espDevice.mutex);
             rt_thread_mdelay(1000);
             espDevice.status = AT_DEV_CONNECT_NET;
