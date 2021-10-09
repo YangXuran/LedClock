@@ -308,29 +308,33 @@ int getSelfIp(char *ip, int length)
 int atRaw2TcpResponse(char *data)
 {
     int i = 0, count = 0, length = 0;
-    char *pStr = data;
+    char *pStr = data, *datap = data;
 
-    while(*data != 0)
+    while(*datap != 0)
     {
-        if((data = strstr(data, "+IPD,")) == NULL)
-            return count;
-        data += strlen("+IPD,");
-        while(*data >= '0' && *data <= '9')
-            length = length*10 + *data++ - '0';
-        data++;
-        if(i == 0) /* 跳过响应头 */
-        {
-            i++;
-            length = 0;
-            continue;
-        }
-        memcpy(pStr, data, length);
+        if((datap = strstr(datap, "+IPD,")) == NULL)
+            break;
+        datap += strlen("+IPD,");
+        while(*datap >= '0' && *datap <= '9')
+            length = length*10 + *datap++ - '0';
+        datap++;
+//        if(i == 0) /* 跳过响应头 */
+//        {
+//            i++;
+//            length = 0;
+//            continue;
+//        }
+        memcpy(pStr, datap, length);
         count += length;
         pStr += length;
-        data += length;
+        datap += length;
         length = 0;
     }
-    return count;
+
+    pStr = strstr(data, "\r\n\r\n");
+    pStr += 4;
+    memcpy(data, pStr, strlen(pStr));
+    return strlen(data);
 }
 
 /**
@@ -344,19 +348,32 @@ int atRaw2TcpResponse(char *data)
  */
 int simpleHttpGet(const char *url, char *resp, int respLen, int timeout)
 {
-    int i, ret;
+    int i, ret, connectTimeout, port;
     char *pUrl;
+    char protocol[4] = {0};
     char cmd[256] = {0};
     char domain[64] = {0};
     char path[128] = {0};
     char data[2048] = {0};
     char httpRequest[512] = {0};
 
-    if((pUrl = strstr(url, "http://")) == NULL)
+    if((pUrl = strstr(url, "http://")) != NULL)
+    {
+        strcpy(protocol, "TCP");
+        pUrl += strlen("http://");
+        port = 80;
+        connectTimeout = 200;
+    }else if((pUrl = strstr(url, "https://")) != NULL)
+    {
+        strcpy(protocol, "SSL");
+        pUrl += strlen("https://");
+        port = 443;
+        connectTimeout = 5000;
+    }else
+    {
         return -1;
+    }
 
-    rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
-    pUrl += strlen("http://");
     for(i=0; i<sizeof(domain); i++)
     {
         if(*pUrl != '/')
@@ -364,10 +381,11 @@ int simpleHttpGet(const char *url, char *resp, int respLen, int timeout)
         else
             break;
     }
+    rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
     strcpy(path, pUrl);
     snprintf(httpRequest, sizeof(httpRequest), "GET %s HTTP/1.1\r\nHOST: %s\r\n\r\n", path, domain);
-    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"TCP\",\"%s\",80\r\n", domain);
-    ret = getCmdParameter(cmd, "OK", NULL, 0, timeout);
+    snprintf(cmd, sizeof(cmd), "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", protocol, domain, port);
+    ret = getCmdParameter(cmd, "OK", NULL, 0, connectTimeout);
     if(ret != 0)
     {
         getCmdParameter("AT+CIPCLOSE\r\n", "CLOSED", NULL, 0, 1);

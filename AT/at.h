@@ -56,6 +56,7 @@ typedef struct{
 int usrAtTask(int arg);
 AT_DEVICE_STATUS getWifiStatus(void);
 int simpleHttpGet(const char *url, char *resp, int respLen, int timeout);
+int getNtpTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time);
 #ifdef __cplusplus
 }
 #endif
