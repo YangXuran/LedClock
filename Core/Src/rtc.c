@@ -306,13 +306,10 @@ void timeCalibration(int arg)
 {
     RTC_DateTypeDef rtcDate;
     RTC_TimeTypeDef rtcTime;
-    char timeJson[128] = {0};
-    char *pTimeJson = timeJson;
 
     rt_thread_mdelay(5000);
     while(1)
     {
-        /* {"sysTime2":"2021-09-23 21:05:52","sysTime1":"20210923210552"} */
         if(getWifiStatus() == AT_DEV_CONNECT_NET)
         {
             if(getNtpTime(&rtcDate, &rtcTime) == 0)
