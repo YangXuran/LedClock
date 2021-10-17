@@ -312,6 +312,7 @@ void timeCalibration(int arg)
     {
         if(getWifiStatus() == AT_DEV_CONNECT_NET)
         {
+            rt_thread_mdelay(1000);
             if(getNtpTime(&rtcDate, &rtcTime) == 0)
             {
                 HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN);
