@@ -31,6 +31,8 @@
 #include "rtdbg.h"
 #include "ws2812Matrix.h"
 #include "fonts.h"
+#include "easyflash.h"
+#include "cJSON.h"
 #include "at.h"
 /* USER CODE END Includes */
 
@@ -44,7 +46,7 @@
 #define TIME_X              10
 #define TIME_Y              1
 #define FRAME_PRE_SECOND    60
-#define DEFAULE_TIME_COLOR  0x303030
+#define DEFAULE_TIME_COLOR  0x808080
 #define MAGIC_TIME_COLOR    0xFF0000
 
 /* USER CODE END PD */
@@ -70,6 +72,10 @@ static struct rt_thread time_tb;
 ALIGN(RT_ALIGN_SIZE)
 static char wifiCtrl_stack[1024];
 static struct rt_thread wifiCtrl_tb;
+
+ALIGN(RT_ALIGN_SIZE)
+static char weather_stack[8192];
+static struct rt_thread weather_tb;
 
 /* USER CODE END PV */
 
@@ -169,23 +175,78 @@ void clockDisplayTask(int arg)
     }
 }
 
-void showWeather(void)
+void showWeather(int arg)
 {
-  int index = 0;
+  int ret = 0, index = 0;
   pattern_t wifiPattern;
+  pattern_t weatherIcon;
+  char url[256] = {0};
+  char key[64] = {0};
+  char location[32] = {0};
+  char weatherJson[1024] = {0};
+  cJSON *root = NULL;
+  cJSON *nowJSON = NULL;
+  cJSON *iconJSON = NULL;
 
   rt_thread_mdelay(1100);
-  while(getWifiStatus() != AT_DEV_CONNECT_NET)
+  while(1)
   {
-    takeScreenMutex();
-    getWifiPattern(index, &wifiPattern);
-    displayPattern(1, 0, &wifiPattern);
-    screenRefresh();
-    releaseScreenMutex();
+    while(getWifiStatus() != AT_DEV_CONNECT_NET)
+    {
+      takeScreenMutex();
+      getWifiPattern(index, &wifiPattern);
+      displayPattern(1, 0, &wifiPattern);
+      screenRefresh();
+      releaseScreenMutex();
+      rt_thread_mdelay(1000);
+      index = index ? 0 : 1;
+    }
+    ret = ef_get_env_blob("wearher_key", key, sizeof(key), NULL);
+    if(ret == 0)
+    {
+      rt_thread_mdelay(5000);
+      continue;
+    }
+
+    ret = ef_get_env_blob("wearher_loc", location, sizeof(location), NULL);
+    if(ret == 0)
+    {
+      rt_thread_mdelay(5000);
+      continue;
+    }
+    snprintf(url, sizeof(url), "https://devapi.qweather.com/v7/weather/now?key=%s&location=%s&gzip=n", key, location);
     rt_thread_mdelay(1000);
-    index = index ? 0 : 1;
+    ret = simpleHttpGet(url, weatherJson, sizeof(weatherJson), 2000);
+    if(ret <= 0)
+      continue;
+    root = cJSON_Parse(weatherJson);
+    if(root == NULL){
+      rt_kprintf("cJSON_Parse fail![%s]\n",cJSON_GetErrorPtr());
+      continue;
+    }
+    nowJSON = cJSON_GetObjectItem(root, "now");
+    if(nowJSON == NULL)
+    {
+        cJSON_Delete(root);
+        continue;
+    }
+    rt_kprintf("WeatherData天气数据:\n%s\n\n",cJSON_Print(nowJSON));
+    iconJSON = cJSON_GetObjectItem(nowJSON, "icon");
+    if (iconJSON != NULL)
+    {
+      char *icon = cJSON_Print(iconJSON);
+      *(icon+4) = 0;    /* 字符串中有双引号 */
+      rt_kprintf("\n\nget weather icon:%s\n", icon);
+      getWeatherPattern(atoi(icon+1), &weatherIcon);
+      takeScreenMutex();
+      displayPattern(1, 0, &weatherIcon);
+      screenRefresh();
+      releaseScreenMutex();
+    }
+    cJSON_Delete(root);
+    rt_thread_mdelay(60*1000);
   }
- 
+
 }
 
 /* USER CODE END 0 */
@@ -199,6 +260,8 @@ int main(void)
   /* USER CODE BEGIN 1 */
     RTC_TimeTypeDef rtcTime;
     RTC_DateTypeDef rtcDate;
+    cJSON_Hooks cJSONHooks = {.malloc_fn = (void * (*)(unsigned int))&rt_malloc,
+                              .free_fn = &rt_free};
  goto threadInit; /* Avoid automatic generation of initialization code*/
   /* USER CODE END 1 */
 
@@ -227,6 +290,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 threadInit:
   easyflash_init();
+  cJSON_InitHooks(&cJSONHooks);
   HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
   HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
   rt_kprintf("System Start At: 20%02x/%02x/%02x  ", rtcDate.Year, rtcDate.Month, rtcDate.Date);
@@ -268,6 +332,17 @@ threadInit:
                   30,
                   5);
   rt_thread_startup(&wifiCtrl_tb);
+
+  /* 天气显示控制线程 */
+  rt_thread_init(&weather_tb,
+                  "weather",
+                  (void(*))&showWeather,
+                  NULL,
+                  weather_stack,
+                  sizeof(weather_stack),
+                  29,
+                  5);
+  rt_thread_startup(&weather_tb);
 
 
   /* USER CODE END 2 */
