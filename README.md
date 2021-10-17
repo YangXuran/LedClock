@@ -17,3 +17,14 @@ WS2812控制简单，实际需要控制器输出为数字信号G-R-B颜色信息
 
 1. AT指令集版本2.3.0.0，注意：与许多开发板上使用2.0.0.0以前的指令有不同。
 2. 需要支持NTP（时间校准）与SSL（天气获取）功能。
+
+## 天气API
+
+天气使用和风天气开发版API，需要手动配置key和location代码(location代码见()[https://github.com/qwd/LocationList/blob/master/China-City-List-latest.csv])。
+
+配置命令
+
+```shell
+setenv wearher_key xxxxxxxxxxxxx
+setenv wearher_loc 101270117
+```

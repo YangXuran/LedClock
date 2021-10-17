@@ -244,7 +244,7 @@ void showWeather(int arg)
       releaseScreenMutex();
     }
     cJSON_Delete(root);
-    rt_thread_mdelay(60*1000);
+    rt_thread_mdelay(20*60*1000);
   }
 
 }
