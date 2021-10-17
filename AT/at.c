@@ -433,7 +433,9 @@ int getNtpTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
     char *month[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     int num[5] = {0};
 
+    rt_mutex_take(&espDevice.mutex, RT_WAITING_FOREVER);
     ret = getCmdParameter("AT+CIPSNTPTIME?\r\n", "+CIPSNTPTIME:", buff, sizeof(buff), 100);
+    rt_mutex_release(&espDevice.mutex);
     if(ret != 0)
         return -1;
     sscanf(buff, "%s %s  %d %d:%d:%d %d", weekStr, monthStr, &num[0], &num[1], &num[2], &num[3], &num[4]);
