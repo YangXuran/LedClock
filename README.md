@@ -20,7 +20,7 @@ WS2812控制简单，实际需要控制器输出为数字信号G-R-B颜色信息
 
 ## 天气API
 
-天气使用和风天气开发版API，需要手动配置key和location代码(location代码见()[https://github.com/qwd/LocationList/blob/master/China-City-List-latest.csv])。
+天气使用和风天气开发版API，需要手动配置key和[Location代码](https://github.com/qwd/LocationList/blob/master/China-City-List-latest.csv)
 
 配置命令
 
