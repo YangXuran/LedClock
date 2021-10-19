@@ -230,7 +230,9 @@ void showWeather(int arg)
         cJSON_Delete(root);
         continue;
     }
-    rt_kprintf("WeatherData天气数据:\n%s\n\n",cJSON_Print(nowJSON));
+    char *weatherData = cJSON_Print(nowJSON);
+    rt_kprintf("WeatherData天气数据:\n%s\n\n", weatherData);
+    cJSON_free(weatherData);
     iconJSON = cJSON_GetObjectItem(nowJSON, "icon");
     if (iconJSON != NULL)
     {
@@ -239,6 +241,7 @@ void showWeather(int arg)
       rt_kprintf("\n\nget weather icon:%s\n", icon);
       getWeatherPattern(atoi(icon+1), &weatherIcon);
       takeScreenMutex();
+      cJSON_free(icon);
       displayPattern(1, 0, &weatherIcon);
       screenRefresh();
       releaseScreenMutex();
