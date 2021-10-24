@@ -43,6 +43,7 @@ void mixChar2Pattern(pattern_t *pattern,
                      const font_t *font1, const rgbPoint_u color1,
                      const font_t *font2, const rgbPoint_u color2);
 void generateWeekDayPattern(int weekDay, pattern_t *pattern);
+void generateTemperaturePattern(int temp, pattern_t *pattern);
 
 #ifdef __cplusplus
 }

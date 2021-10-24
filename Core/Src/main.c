@@ -185,6 +185,7 @@ void showWeather(int arg)
   int ret = 0, index = 0;
   pattern_t wifiPattern;
   pattern_t weatherIcon;
+  pattern_t tempPattern;
   char url[256] = {0};
   char key[64] = {0};
   char location[32] = {0};
@@ -192,6 +193,7 @@ void showWeather(int arg)
   cJSON *root = NULL;
   cJSON *nowJSON = NULL;
   cJSON *iconJSON = NULL;
+  cJSON *tempJSON = NULL;
 
   rt_thread_mdelay(1100);
   while(1)
@@ -200,9 +202,12 @@ void showWeather(int arg)
     {
       takeScreenMutex();
       getWifiPattern(index, &wifiPattern);
+      generateTemperaturePattern(-273, &tempPattern);
       displayPattern(1, 0, &wifiPattern);
+      displayPattern(9, 7, &tempPattern);
       screenRefresh();
       releaseScreenMutex();
+      rt_free(tempPattern.pixel);
       rt_thread_mdelay(1000);
       index = index ? 0 : 1;
     }
@@ -239,17 +244,22 @@ void showWeather(int arg)
     rt_kprintf("WeatherData天气数据:\n%s\n\n", weatherData);
     cJSON_free(weatherData);
     iconJSON = cJSON_GetObjectItem(nowJSON, "icon");
+    tempJSON = cJSON_GetObjectItem(nowJSON, "temp");
     if (iconJSON != NULL)
     {
       char *icon = cJSON_Print(iconJSON);
-      *(icon+4) = 0;    /* 字符串中有双引号 */
-      rt_kprintf("\n\nget weather icon:%s\n", icon);
+      char *temp = cJSON_Print(tempJSON);
+      rt_kprintf("\n\nget weather icon:%d, temperature:%d\n", atoi(icon+1), atoi(temp+1));
       getWeatherPattern(atoi(icon+1), &weatherIcon);
-      takeScreenMutex();
+      generateTemperaturePattern(atoi(temp+1), &tempPattern);
       cJSON_free(icon);
+      cJSON_free(temp);
+      takeScreenMutex();
       displayPattern(1, 0, &weatherIcon);
+      displayPattern(9, 7, &tempPattern);
       screenRefresh();
       releaseScreenMutex();
+      rt_free(tempPattern.pixel);
     }
     cJSON_Delete(root);
     rt_thread_mdelay(20*60*1000);

@@ -114,9 +114,11 @@ void generateWeekDayPattern(int weekDay, pattern_t *pattern)
     rt_memset(pattern->pixel, 0, sizeof(rgbPoint_u)*pattern->hight*pattern->width);
 
     for(int i=6; i>=0; i--)
-        if(weekDay >= i)
-            for(int j=0; j<pattern->width; j++)
+        for(int j=0; j<pattern->width; j++)
+            if(weekDay >= (6-i))
                 pattern->pixel[pattern->width*i+j].color = weekDayColor[i].color;
+            else
+                pattern->pixel[pattern->width*i+j].color = 0x020202;
 
     pattern->pixel[2].color = 0;
     pattern->pixel[3].color = 0;
@@ -124,4 +126,38 @@ void generateWeekDayPattern(int weekDay, pattern_t *pattern)
     pattern->pixel[20].color = 0;
     pattern->pixel[24].color = 0;
     pattern->pixel[25].color = 0;
+}
+
+void generateTemperaturePattern(int temp, pattern_t *pattern)
+{
+    int i, j;
+    int label;
+    rgbPoint_u tempColor[] = {{.color = 0x0f0f8d}, {.color = 0x8917b0}, {.color = 0x26b03b}, {.color = 0x54bb00}};
+
+    pattern->hight = 1;
+    pattern->width = 19;
+    pattern->pixel = rt_malloc(sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memset(pattern->pixel, 0, sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+
+    if(temp == -273)    /* temp == -273时返回空条 */
+        label = -1;
+    else if(temp <= 0)
+        label = 0;
+    else if(temp <= 10)
+        label = 1;
+    else if(temp <= 20)
+        label = 2;
+    else 
+        label = 3;
+
+    for(i=0; i<4; i++)
+    {
+        for(j=0; j<4; j++)
+        {
+            if(i <= label)
+                pattern->pixel[5*i+j].color = tempColor[i].color;
+            else
+                pattern->pixel[5*i+j].color = 0x020202;
+        }
+    }
 }
