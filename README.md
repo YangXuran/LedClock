@@ -2,6 +2,8 @@
 
 点阵屏使用WS2812方案，控制器使用STM32F1 PWM实现显示。网络部分使用串口与ESP8266通讯。
 
+![](./VID_20211024_214231.gif)
+
 ## STM32F103VE
 
 1. 使用STM32CubeIDE开发。运行RT-Thread Nano 3.1.5 + EasyFlash 4.1.99。
