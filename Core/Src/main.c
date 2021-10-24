@@ -126,7 +126,7 @@ void clockDisplayTask(int arg)
         HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
         HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
         /* TODO: 因为不显示秒，后面需要注释，现在为了调试方便把秒加上每秒都可以触发断点 */
-        rtcTime_u32 = rtcTime.Hours<<16 | rtcTime.Minutes<<8 | rtcTime.Seconds;
+        rtcTime_u32 = rtcTime.Hours<<16 | rtcTime.Minutes<<8 /*| rtcTime.Seconds*/;
         if(rtcTime_u32 == rtcTimeLast_u32)
         {
             /* nothing to do here */
