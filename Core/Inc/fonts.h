@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "stm32f1xx_hal.h"
+#include "rtthread.h"
 
 #define TIME_NUMBER_WIDTH 3
 #define TIME_NUMBER_HIGHT 5
@@ -41,6 +42,7 @@ void adjustPixelBrightness(uint8_t value, rgbPoint_u *pixel, uint32_t length);
 void mixChar2Pattern(pattern_t *pattern,
                      const font_t *font1, const rgbPoint_u color1,
                      const font_t *font2, const rgbPoint_u color2);
+void generateWeekDayPattern(int weekDay, pattern_t *pattern);
 
 #ifdef __cplusplus
 }

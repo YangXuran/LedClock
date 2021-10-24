@@ -98,10 +98,12 @@ void clockDisplayTask(int arg)
     uint32_t rtcTime_u32 = 0x888888, rtcTimeLast_u32 = 0x888888;
     uint8_t digit, digitLast;
     RTC_TimeTypeDef rtcTime;
+    RTC_DateTypeDef rtcDate;
     font_t font, fontLast;
     rgbPoint_u timeColor, timeColorLast;
     rgbPoint_u mixedPatternPixel[TIME_NUMBER_WIDTH*TIME_NUMBER_HIGHT];
     pattern_t mixedPattern;
+    pattern_t weekDayPattern;
 
     rt_thread_mdelay(1000);
     takeScreenMutex();
@@ -122,6 +124,7 @@ void clockDisplayTask(int arg)
     while(1)
     {
         HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
+        HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BCD);
         /* TODO: 因为不显示秒，后面需要注释，现在为了调试方便把秒加上每秒都可以触发断点 */
         rtcTime_u32 = rtcTime.Hours<<16 | rtcTime.Minutes<<8 | rtcTime.Seconds;
         if(rtcTime_u32 == rtcTimeLast_u32)
@@ -164,7 +167,9 @@ void clockDisplayTask(int arg)
                         }
                     }
                 }
-
+                generateWeekDayPattern(rtcDate.WeekDay ? rtcDate.WeekDay : 7, &weekDayPattern);
+                displayPattern(28, 0, &weekDayPattern);
+                rt_free(weekDayPattern.pixel);
                 screenRefresh();
                 rt_thread_mdelay((1000/FRAME_PRE_SECOND)-100);
             }

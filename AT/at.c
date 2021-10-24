@@ -307,7 +307,7 @@ int getSelfIp(char *ip, int length)
  */
 int atRaw2TcpResponse(char *data)
 {
-    int i = 0, count = 0, length = 0;
+    int /*i = 0,*/ count = 0, length = 0;
     char *pStr = data, *datap = data;
 
     while(*datap != 0)
@@ -429,7 +429,7 @@ int getNtpTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
     char buff[40] = {0};
     char weekStr[5] = {0};
     char monthStr[5] = {0};
-    char *week[] = {"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+    char *week[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     char *month[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     int num[5] = {0};
 
@@ -440,7 +440,7 @@ int getNtpTime(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
         return -1;
     sscanf(buff, "%s %s  %d %d:%d:%d %d", weekStr, monthStr, &num[0], &num[1], &num[2], &num[3], &num[4]);
     date->Date = num[0]; time->Hours = num[1]; time->Minutes = num[2]; time->Seconds = num[3]; date->Year = num[4]%100;
-    for(i=1; i<=7; i++)
+    for(i=0; i<7; i++)
     {
         if(strcmp(weekStr, week[i]) == 0)
             break;

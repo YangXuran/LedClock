@@ -98,3 +98,30 @@ void mixChar2Pattern(pattern_t *pattern,
         }
     }
 }
+
+void generateWeekDayPattern(int weekDay, pattern_t *pattern)
+{
+    rgbPoint_u weekDayColor[] = {{.color = 0xe9fa57}, {.color = 0x97fc17}, {.color = 0x4df52d}, {.color = 0x33bc5e},
+                                 {.color = 0x2e788c}, {.color = 0x284a8a}, {.color = 0x242d6c}};
+
+    if(weekDay > 7 || weekDay < 0)
+        return;
+
+    weekDay --;
+    pattern->hight = 7;
+    pattern->width = 4;
+    pattern->pixel = rt_malloc(sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memset(pattern->pixel, 0, sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+
+    for(int i=6; i>=0; i--)
+        if(weekDay >= i)
+            for(int j=0; j<pattern->width; j++)
+                pattern->pixel[pattern->width*i+j].color = weekDayColor[i].color;
+
+    pattern->pixel[2].color = 0;
+    pattern->pixel[3].color = 0;
+    pattern->pixel[7].color = 0;
+    pattern->pixel[20].color = 0;
+    pattern->pixel[24].color = 0;
+    pattern->pixel[25].color = 0;
+}
