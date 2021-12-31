@@ -37,7 +37,9 @@ int getWifiPattern(int index, pattern_t *pattern)
 {
     pattern->width = 7;
     pattern->hight = 7;
-    pattern->pixel = (rgbPoint_u*)(wifiIcon+7*7*index);
+    pattern->pixel = rt_malloc(sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memset(pattern->pixel, 0, sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memcpy(pattern->pixel, (rgbPoint_u*)(wifiIcon+7*7*index), sizeof(rgbPoint_u)*pattern->hight*pattern->width);
     return 0;
 }
 
@@ -54,7 +56,9 @@ int getWeatherPattern(int index, pattern_t *pattern)
         arrayIndex = 69;
     pattern->width = 7;
     pattern->hight = 7;
-    pattern->pixel = (rgbPoint_u*)(weatherIcon+7*7*arrayIndex);
+    pattern->pixel = rt_malloc(sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memset(pattern->pixel, 0, sizeof(rgbPoint_u)*pattern->hight*pattern->width);
+    rt_memcpy(pattern->pixel, (rgbPoint_u*)(weatherIcon+7*7*arrayIndex), sizeof(rgbPoint_u)*pattern->hight*pattern->width);
     return 0;
 }
 

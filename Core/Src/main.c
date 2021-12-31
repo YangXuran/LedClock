@@ -89,7 +89,13 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 uint8_t getBrightness(void)
 {
-    return 255;
+    RTC_TimeTypeDef rtcTime;
+
+    HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BCD);
+    if(rtcTime.Hours >= 0x23 || rtcTime.Hours <= 0x6)
+        return 10;
+    else
+        return 255;
 }
 
 void clockDisplayTask(int arg)
@@ -137,6 +143,7 @@ void clockDisplayTask(int arg)
             {
                 /* 时与分间冒号 */
                 timeColor.color = DEFAULE_TIME_COLOR;
+                adjustPixelBrightness(getBrightness(), &timeColor, 1);
                 getTimeFonts(10, &font);
                 displayChar(TIME_X+7, TIME_Y, &font, timeColor);
                 for(clkNum=0; clkNum<4; clkNum++)
@@ -150,6 +157,8 @@ void clockDisplayTask(int arg)
                         getTimeFonts(digitLast, &fontLast);
                         timeColor.color = DEFAULE_TIME_COLOR;
                         timeColorLast.color = DEFAULE_TIME_COLOR;
+                        adjustPixelBrightness(getBrightness(), &timeColor, 1);
+                        adjustPixelBrightness(getBrightness(), &timeColorLast, 1);
                         if(frameCount < FRAME_PRE_SECOND-1)
                         {
                             mixedPattern.hight = font.hight;
@@ -157,6 +166,8 @@ void clockDisplayTask(int arg)
                             mixedPattern.pixel = mixedPatternPixel;
                             adjustPixelBrightness(frameCount*(1.0*255/FRAME_PRE_SECOND), &timeColor, 1);
                             adjustPixelBrightness(255-(frameCount*(1.0*255/FRAME_PRE_SECOND)), &timeColorLast, 1);
+                           adjustPixelBrightness(getBrightness(), &timeColor, 1);
+                           adjustPixelBrightness(getBrightness(), &timeColorLast, 1);
                             mixChar2Pattern(&mixedPattern,
                                             &font, timeColor,
                                             &fontLast, timeColorLast);
@@ -168,6 +179,7 @@ void clockDisplayTask(int arg)
                     }
                 }
                 generateWeekDayPattern(rtcDate.WeekDay ? rtcDate.WeekDay : 7, &weekDayPattern);
+                adjustPixelBrightness(getBrightness(), weekDayPattern.pixel, weekDayPattern.hight*weekDayPattern.width);
                 displayPattern(28, 0, &weekDayPattern);
                 rt_free(weekDayPattern.pixel);
                 screenRefresh();
@@ -203,10 +215,13 @@ void showWeather(int arg)
       takeScreenMutex();
       getWifiPattern(index, &wifiPattern);
       generateTemperaturePattern(-273, &tempPattern);
+      adjustPixelBrightness(getBrightness(), wifiPattern.pixel, wifiPattern.hight*wifiPattern.width);
+      adjustPixelBrightness(getBrightness(), tempPattern.pixel, tempPattern.hight*tempPattern.width);
       displayPattern(1, 0, &wifiPattern);
       displayPattern(9, 7, &tempPattern);
       screenRefresh();
       releaseScreenMutex();
+      rt_free(wifiPattern.pixel);
       rt_free(tempPattern.pixel);
       rt_thread_mdelay(1000);
       index = index ? 0 : 1;
@@ -252,6 +267,8 @@ void showWeather(int arg)
       rt_kprintf("\n\nget weather icon:%d, temperature:%d\n", atoi(icon+1), atoi(temp+1));
       getWeatherPattern(atoi(icon+1), &weatherIcon);
       generateTemperaturePattern(atoi(temp+1), &tempPattern);
+      adjustPixelBrightness(getBrightness(), weatherIcon.pixel, weatherIcon.hight*weatherIcon.width);
+      adjustPixelBrightness(getBrightness(), tempPattern.pixel, tempPattern.hight*tempPattern.width);
       cJSON_free(icon);
       cJSON_free(temp);
       takeScreenMutex();
@@ -259,6 +276,7 @@ void showWeather(int arg)
       displayPattern(9, 7, &tempPattern);
       screenRefresh();
       releaseScreenMutex();
+      rt_free(weatherIcon.pixel);
       rt_free(tempPattern.pixel);
     }
     cJSON_Delete(root);
@@ -490,4 +508,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
