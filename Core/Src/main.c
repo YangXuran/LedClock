@@ -143,7 +143,6 @@ void clockDisplayTask(int arg)
             {
                 /* 时与分间冒号 */
                 timeColor.color = DEFAULE_TIME_COLOR;
-                adjustPixelBrightness(getBrightness(), &timeColor, 1);
                 getTimeFonts(10, &font);
                 displayChar(TIME_X+7, TIME_Y, &font, timeColor);
                 for(clkNum=0; clkNum<4; clkNum++)
@@ -157,8 +156,6 @@ void clockDisplayTask(int arg)
                         getTimeFonts(digitLast, &fontLast);
                         timeColor.color = DEFAULE_TIME_COLOR;
                         timeColorLast.color = DEFAULE_TIME_COLOR;
-                        adjustPixelBrightness(getBrightness(), &timeColor, 1);
-                        adjustPixelBrightness(getBrightness(), &timeColorLast, 1);
                         if(frameCount < FRAME_PRE_SECOND-1)
                         {
                             mixedPattern.hight = font.hight;
@@ -166,8 +163,6 @@ void clockDisplayTask(int arg)
                             mixedPattern.pixel = mixedPatternPixel;
                             adjustPixelBrightness(frameCount*(1.0*255/FRAME_PRE_SECOND), &timeColor, 1);
                             adjustPixelBrightness(255-(frameCount*(1.0*255/FRAME_PRE_SECOND)), &timeColorLast, 1);
-                           adjustPixelBrightness(getBrightness(), &timeColor, 1);
-                           adjustPixelBrightness(getBrightness(), &timeColorLast, 1);
                             mixChar2Pattern(&mixedPattern,
                                             &font, timeColor,
                                             &fontLast, timeColorLast);
@@ -179,7 +174,6 @@ void clockDisplayTask(int arg)
                     }
                 }
                 generateWeekDayPattern(rtcDate.WeekDay ? rtcDate.WeekDay : 7, &weekDayPattern);
-                adjustPixelBrightness(getBrightness(), weekDayPattern.pixel, weekDayPattern.hight*weekDayPattern.width);
                 displayPattern(28, 0, &weekDayPattern);
                 rt_free(weekDayPattern.pixel);
                 screenRefresh();
@@ -215,8 +209,6 @@ void showWeather(int arg)
       takeScreenMutex();
       getWifiPattern(index, &wifiPattern);
       generateTemperaturePattern(-273, &tempPattern);
-      adjustPixelBrightness(getBrightness(), wifiPattern.pixel, wifiPattern.hight*wifiPattern.width);
-      adjustPixelBrightness(getBrightness(), tempPattern.pixel, tempPattern.hight*tempPattern.width);
       displayPattern(1, 0, &wifiPattern);
       displayPattern(9, 7, &tempPattern);
       screenRefresh();
@@ -267,8 +259,6 @@ void showWeather(int arg)
       rt_kprintf("\n\nget weather icon:%d, temperature:%d\n", atoi(icon+1), atoi(temp+1));
       getWeatherPattern(atoi(icon+1), &weatherIcon);
       generateTemperaturePattern(atoi(temp+1), &tempPattern);
-      adjustPixelBrightness(getBrightness(), weatherIcon.pixel, weatherIcon.hight*weatherIcon.width);
-      adjustPixelBrightness(getBrightness(), tempPattern.pixel, tempPattern.hight*tempPattern.width);
       cJSON_free(icon);
       cJSON_free(temp);
       takeScreenMutex();

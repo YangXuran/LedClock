@@ -14,6 +14,8 @@ rgbPoint_u matrixRam[MATRIX_ROW][MATRIX_COLUMN] = {0};	                /* LED点
 struct rt_semaphore pwmSem;     /* LED点阵PWM刷新锁 */
 struct rt_mutex screenMutex;    /* LED屏幕互斥锁 */
 
+extern uint8_t getBrightness(void);
+
 /**
  * @brief 获取PWM DMA缓存地址区域
  * 
@@ -41,15 +43,21 @@ int getPwmDmaRamSize(void)
 void matrix2pwm(void)
 {
 	int row, column, color, bit;
+    rgbPoint_u pixel;
+    uint8_t brightness = getBrightness();
 
 	for(row=0; row<MATRIX_ROW; row++)
 		for(column=0; column<MATRIX_COLUMN; column++)
+        {
+            pixel.color = matrixRam[row][column].color;
+            adjustPixelBrightness(brightness, &pixel, 1);
 		    for(color=0; color<3; color++)
 		        for(bit=0; bit<8; bit++)
-		            if(matrixRam[row][column].color & (0x800000>>(color*8+bit)))
+		            if(pixel.color & (0x800000>>(color*8+bit)))
 		                (*pwmMatrix)[column][column%2 ? (MATRIX_ROW-1-row) : row][color][bit] = WS2812_ONE;
 		            else
 		                (*pwmMatrix)[column][column%2 ? (MATRIX_ROW-1-row) : row][color][bit] = WS2812_ZERO;
+        }
 }
 
 /**
